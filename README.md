@@ -1,4 +1,4 @@
-# BarangayOne – Multi-tenant Barangay e-Governance Platform built with Next.js
+# BarangayOne – Multi-tenant Barangay e-Governance Platform
 
 BarangayOne is a production-ready, multi-tenant barangay e-governance platform that allows multiple barangays to manage residents, documents, and community services digitally. Built for scalability and ease of use by local government units (LGUs) in the Philippines.
 
