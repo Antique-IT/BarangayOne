@@ -1,0 +1,336 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url       = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// Note: SQLite doesn't support native enums.
+// Enum constraints are enforced at the application 
+// level via TypeScript types and Zod schemas.
+// ─────────────────────────────────────────────
+
+// ─────────────────────────────────────────────
+// Core models
+// ─────────────────────────────────────────────
+
+model Barangay {
+  id              String             @id @default(cuid())
+  name            String
+  city            String
+  province        String
+  region          String
+  address         String
+  contactNumber   String?
+  users           User[]
+  residents       Resident[]
+  households      Household[]
+  officials       Official[]
+  clearanceRequests ClearanceRequest[]
+  blotters        Blotter[]
+  announcements   Announcement[]
+  ordinances      Ordinance[]
+  activityLogs    ActivityLog[]
+  settings        SystemSettings?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+}
+
+model User {
+  id                 String             @id @default(cuid())
+  barangayId         String?
+  residentId         String?            @unique
+  name               String?
+  email              String             @unique
+  emailVerified      DateTime?
+  image              String?
+  passwordHash       String?
+  role               String             @default("RESIDENT")
+  barangay           Barangay?          @relation(fields: [barangayId], references: [id])
+  resident           Resident?          @relation(fields: [residentId], references: [id])
+  accounts           Account[]
+  sessions           Session[]
+  activityLogs       ActivityLog[]
+  announcements      Announcement[]     @relation("AnnouncementAuthor")
+  notifications      Notification[]
+  clearancesApproved ClearanceRequest[] @relation("ClearanceApprover")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([barangayId])
+  @@index([email])
+}
+
+// NextAuth adapter models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─────────────────────────────────────────────
+// Population records
+// ─────────────────────────────────────────────
+
+model Resident {
+  id               String            @id @default(cuid())
+  barangayId       String
+  firstName        String
+  lastName         String
+  middleName       String?
+  suffix           String?
+  birthDate        DateTime
+  gender           String
+  civilStatus      String
+  occupation       String?
+  phone            String?
+  email            String?
+  address          String
+  purok            String?
+  isVoter          Boolean           @default(false)
+  isSeniorCitizen  Boolean           @default(false)
+  isPWD            Boolean           @default(false)
+  isArchived       Boolean           @default(false)
+  photo            String?
+  barangay         Barangay          @relation(fields: [barangayId], references: [id])
+  user             User?
+  headedHouseholds Household[]       @relation("HouseholdHead")
+  householdMembers HouseholdMember[]
+  clearanceRequests ClearanceRequest[]
+  blotters         Blotter[]         @relation("BlotterComplainant")
+  blottersAsRespondent Blotter[]     @relation("BlotterRespondent")
+  officials        Official[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([barangayId])
+  @@index([barangayId, isArchived])
+  @@index([barangayId, isVoter])
+  @@index([barangayId, isSeniorCitizen])
+  @@index([lastName, firstName])
+}
+
+model Household {
+  id               String            @id @default(cuid())
+  barangayId       String
+  householdHeadId  String?
+  houseNumber      String?
+  address          String
+  purok            String?
+  barangay         Barangay          @relation(fields: [barangayId], references: [id])
+  householdHead    Resident?         @relation("HouseholdHead", fields: [householdHeadId], references: [id])
+  members          HouseholdMember[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([barangayId])
+}
+
+model HouseholdMember {
+  id           String    @id @default(cuid())
+  householdId  String
+  residentId   String
+  relationship String
+  isHead       Boolean   @default(false)
+  household    Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  resident     Resident  @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now())
+
+  @@unique([householdId, residentId])
+}
+
+// ─────────────────────────────────────────────
+// Officials
+// ─────────────────────────────────────────────
+
+model Official {
+  id          String           @id @default(cuid())
+  barangayId  String
+  residentId  String
+  position    String
+  termStart   DateTime
+  termEnd     DateTime?
+  barangay    Barangay         @relation(fields: [barangayId], references: [id])
+  resident    Resident         @relation(fields: [residentId], references: [id])
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([barangayId])
+  @@index([barangayId, position])
+}
+
+// ─────────────────────────────────────────────
+// Documents & cases
+// ─────────────────────────────────────────────
+
+model ClearanceRequest {
+  id             String          @id @default(cuid())
+  barangayId     String
+  residentId     String
+  type           String
+  purpose        String?
+  status         String          @default("PENDING")
+  requestDate    DateTime        @default(now())
+  approvedBy     String?
+  approvedAt     DateTime?
+  documentNumber String
+  verificationCode String?
+  expiresAt      DateTime?
+  remarks        String?
+  qrCode         String?
+  barangay       Barangay        @relation(fields: [barangayId], references: [id])
+  resident       Resident        @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  approver       User?           @relation("ClearanceApprover", fields: [approvedBy], references: [id])
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@unique([barangayId, documentNumber])
+  @@index([barangayId])
+  @@index([barangayId, status])
+  @@index([residentId])
+  @@index([verificationCode])
+}
+
+model Blotter {
+  id                String        @id @default(cuid())
+  barangayId        String
+  caseNumber        String
+  complainantId     String?
+  respondentId      String?
+  complainantName   String
+  respondentName    String
+  incident          String
+  incidentDate      DateTime
+  location          String
+  description       String
+  status            String        @default("OPEN")
+  resolutionNotes   String?
+  resolution        String?
+  mediationSchedule DateTime?
+  resolvedAt        DateTime?
+  barangay          Barangay      @relation(fields: [barangayId], references: [id])
+  complainant       Resident?     @relation("BlotterComplainant", fields: [complainantId], references: [id])
+  respondent        Resident?     @relation("BlotterRespondent", fields: [respondentId], references: [id])
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@unique([barangayId, caseNumber])
+  @@index([barangayId])
+  @@index([barangayId, status])
+  @@index([complainantId])
+  @@index([respondentId])
+}
+
+// ─────────────────────────────────────────────
+// Announcements & ordinances
+// ─────────────────────────────────────────────
+
+model Announcement {
+  id          String    @id @default(cuid())
+  barangayId  String
+  title       String
+  content     String
+  category    String?
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+  createdBy   String?
+  barangay    Barangay  @relation(fields: [barangayId], references: [id])
+  author      User?     @relation("AnnouncementAuthor", fields: [createdBy], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([barangayId])
+  @@index([barangayId, isPublished])
+}
+
+model Ordinance {
+  id              String   @id @default(cuid())
+  barangayId      String
+  title           String
+  description     String?
+  ordinanceNumber String
+  dateApproved    DateTime
+  barangay        Barangay @relation(fields: [barangayId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([barangayId, ordinanceNumber])
+  @@index([barangayId])
+}
+
+// ─────────────────────────────────────────────
+// Audit, notifications & settings
+// ─────────────────────────────────────────────
+
+model ActivityLog {
+  id          String    @id @default(cuid())
+  barangayId  String?
+  userId      String?
+  action      String
+  description String?
+  entityType  String?
+  entityId    String?
+  metadata    String?
+  barangay    Barangay? @relation(fields: [barangayId], references: [id])
+  user        User?     @relation(fields: [userId], references: [id])
+  createdAt   DateTime  @default(now())
+
+  @@index([barangayId])
+  @@index([userId])
+  @@index([entityType, entityId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, isRead])
+}
+
+model SystemSettings {
+  id            String   @id @default(cuid())
+  barangayId    String   @unique
+  barangayLogo  String?
+  barangaySeal  String?
+  clearanceFee  Decimal  @default(0)
+  residencyFee  Decimal  @default(0)
+  barangay      Barangay @relation(fields: [barangayId], references: [id])
+  updatedAt     DateTime @updatedAt
+}
