@@ -84,7 +84,7 @@ export function SettingsForm({ barangay }: { barangay: Barangay | null }) {
       <Card>
         <CardHeader><CardTitle className="text-base">System Information</CardTitle></CardHeader>
         <CardContent className="space-y-2 text-sm text-gray-600">
-          <div className="flex justify-between py-2 border-b"><span>System Version</span><span className="font-medium">BarangayOS v1.0.0</span></div>
+          <div className="flex justify-between py-2 border-b"><span>System Version</span><span className="font-medium">BarangayOne v1.0.0</span></div>
           <div className="flex justify-between py-2 border-b"><span>Database</span><span className="font-medium">PostgreSQL</span></div>
           <div className="flex justify-between py-2"><span>Framework</span><span className="font-medium">Next.js 15</span></div>
         </CardContent>
