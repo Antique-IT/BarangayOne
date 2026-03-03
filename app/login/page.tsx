@@ -56,7 +56,7 @@ export default function LoginPage() {
           <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center mx-auto mb-2">
             <span className="text-primary-foreground font-bold text-xl">B</span>
           </div>
-          <CardTitle className="text-2xl">BarangayOS</CardTitle>
+          <CardTitle className="text-2xl">BarangayOne</CardTitle>
           <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
         <CardContent>
