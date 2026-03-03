@@ -30,8 +30,13 @@ export const residentRepository = {
     return { residents, total, page, limit }
   },
 
-  async findById(id: string) {
-    return prisma.resident.findUnique({ where: { id } })
+  async findById(id: string, barangayId?: string) {
+    return prisma.resident.findFirst({
+      where: {
+        id,
+        barangayId: barangayId ?? undefined,
+      },
+    })
   },
 
   async create(barangayId: string, data: CreateResidentInput) {

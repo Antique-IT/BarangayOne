@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { redirect } from "next/navigation"
 import { authOptions } from "@/lib/auth"
 import { isResidentRole } from "@/lib/rbac"
+import { LogoutButton } from "@/components/auth/logout-button"
 
 const navItems = [
   { href: "/resident/dashboard", label: "Dashboard" },
@@ -19,7 +20,7 @@ export default async function ResidentLayout({ children }: { children: React.Rea
   }
 
   if (!isResidentRole(session.user.role)) {
-    redirect("/dashboard")
+    redirect("/forbidden")
   }
 
   return (
@@ -40,6 +41,7 @@ export default async function ResidentLayout({ children }: { children: React.Rea
                 {item.label}
               </Link>
             ))}
+            <LogoutButton className="ml-2" />
           </nav>
         </div>
       </header>

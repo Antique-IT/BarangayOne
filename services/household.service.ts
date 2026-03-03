@@ -11,8 +11,8 @@ export const householdService = {
     return householdRepository.findMany(opts)
   },
 
-  async getById(id: string) {
-    const household = await householdRepository.findById(id)
+  async getById(id: string, barangayId?: string) {
+    const household = await householdRepository.findById(id, barangayId)
     if (!household) throw notFound("Household not found")
     return household
   },
@@ -34,7 +34,7 @@ export const householdService = {
     actorId?: string,
     barangayId?: string,
   ) {
-    await householdService.getById(id)
+    await householdService.getById(id, barangayId)
     const household = await householdRepository.update(id, data)
     await activityLogRepository.create({
       barangayId,
@@ -46,7 +46,7 @@ export const householdService = {
   },
 
   async delete(id: string, actorId?: string, barangayId?: string) {
-    await householdService.getById(id)
+    await householdService.getById(id, barangayId)
     await householdRepository.delete(id)
     await activityLogRepository.create({
       barangayId,

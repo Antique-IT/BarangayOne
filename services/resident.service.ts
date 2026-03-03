@@ -8,8 +8,8 @@ export const residentService = {
     return residentRepository.findMany(opts)
   },
 
-  async getById(id: string) {
-    const resident = await residentRepository.findById(id)
+  async getById(id: string, barangayId?: string) {
+    const resident = await residentRepository.findById(id, barangayId)
     if (!resident) throw notFound("Resident not found")
     return resident
   },
@@ -30,7 +30,7 @@ export const residentService = {
   },
 
   async update(id: string, data: UpdateResidentInput, actorId?: string, barangayId?: string) {
-    await residentService.getById(id) // throws 404 if missing
+    await residentService.getById(id, barangayId) // throws 404 if missing
     const resident = await residentRepository.update(id, data)
     await activityLogRepository.create({
       barangayId,
@@ -42,7 +42,7 @@ export const residentService = {
   },
 
   async archive(id: string, actorId?: string, barangayId?: string) {
-    const existing = await residentService.getById(id)
+    const existing = await residentService.getById(id, barangayId)
     await residentRepository.archive(id)
     await activityLogRepository.create({
       barangayId,

@@ -28,9 +28,9 @@ export const blotterRepository = {
     return { blotters, total, page, limit }
   },
 
-  async findById(id: string) {
-    return prisma.blotter.findUnique({
-      where: { id },
+  async findById(id: string, barangayId?: string) {
+    return prisma.blotter.findFirst({
+      where: { id, barangayId: barangayId ?? undefined },
       include: { complainant: true, respondent: true },
     })
   },

@@ -29,8 +29,8 @@ export const clearanceService = {
     return clearanceRepository.findMany(opts)
   },
 
-  async getById(id: string) {
-    const clearance = await clearanceRepository.findById(id)
+  async getById(id: string, barangayId?: string) {
+    const clearance = await clearanceRepository.findById(id, barangayId)
     if (!clearance) throw notFound("Clearance request not found")
     return clearance
   },
@@ -55,7 +55,7 @@ export const clearanceService = {
     actorId?: string,
     barangayId?: string,
   ) {
-    const current = await clearanceService.getById(id)
+    const current = await clearanceService.getById(id, barangayId)
 
     const shouldGenerateVerification =
       data.status === "APPROVED" && !current.verificationCode
@@ -87,7 +87,7 @@ export const clearanceService = {
   },
 
   async delete(id: string, actorId?: string, barangayId?: string) {
-    const clearance = await clearanceService.getById(id)
+    const clearance = await clearanceService.getById(id, barangayId)
     await clearanceRepository.delete(id)
     await activityLogRepository.create({
       barangayId,

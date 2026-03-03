@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { signIn } from "next-auth/react"
+import { getSession, signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -41,7 +41,14 @@ export default function LoginPage() {
       if (result?.error) {
         toast({ title: "Error", description: "Invalid email or password", variant: "destructive" })
       } else {
-        router.push("/dashboard")
+        const session = await getSession()
+        const callbackUrl = typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("callbackUrl")
+          : null
+        const safeCallbackUrl = callbackUrl?.startsWith("/") ? callbackUrl : null
+        const defaultPath = session?.user?.role === "RESIDENT" ? "/resident/dashboard" : "/dashboard"
+
+        router.push(safeCallbackUrl ?? defaultPath)
         router.refresh()
       }
     } finally {

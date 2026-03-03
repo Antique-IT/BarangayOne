@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { withErrorHandler } from "@/lib/api-error"
+import { requireAdminRead, requireBarangay, requireSessionUser } from "@/lib/auth-guards"
 import ExcelJS from "exceljs"
 import { Document, Page, Text, View, StyleSheet, pdf } from "@react-pdf/renderer"
 
@@ -47,14 +47,14 @@ function ReportDocument({
   )
 }
 
-export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+export const GET = withErrorHandler(async (req) => {
+  const user = await requireSessionUser()
+  requireAdminRead(user)
 
-  const { searchParams } = new URL(req.url)
+  const { searchParams } = new URL((req as NextRequest).url)
   const type = searchParams.get("type")?.toUpperCase()
   const format = searchParams.get("format")?.toLowerCase() || "pdf"
-  const barangayId = (session.user as { barangayId?: string }).barangayId
+  const barangayId = requireBarangay(user)
 
   if (!type) return NextResponse.json({ error: "Report type is required" }, { status: 400 })
 
@@ -251,7 +251,7 @@ export async function GET(req: NextRequest) {
       "Content-Disposition": `attachment; filename="${filename}-${new Date().toISOString().split("T")[0]}.xlsx"`,
     },
   })
-}
+})
 
 function styleHeader(sheet: ExcelJS.Worksheet) {
   const headerRow = sheet.getRow(1)

@@ -31,8 +31,11 @@ export const clearanceRepository = {
     return { clearances, total, page, limit }
   },
 
-  async findById(id: string) {
-    return prisma.clearanceRequest.findUnique({ where: { id }, include: { resident: true } })
+  async findById(id: string, barangayId?: string) {
+    return prisma.clearanceRequest.findFirst({
+      where: { id, barangayId: barangayId ?? undefined },
+      include: { resident: true },
+    })
   },
 
   async create(barangayId: string, documentNumber: string, data: CreateClearanceInput) {
