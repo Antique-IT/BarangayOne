@@ -8,8 +8,8 @@ export const blotterService = {
     return blotterRepository.findMany(opts)
   },
 
-  async getById(id: string) {
-    const blotter = await blotterRepository.findById(id)
+  async getById(id: string, barangayId?: string) {
+    const blotter = await blotterRepository.findById(id, barangayId)
     if (!blotter) throw notFound("Blotter case not found")
     return blotter
   },
@@ -26,7 +26,7 @@ export const blotterService = {
   },
 
   async update(id: string, data: UpdateBlotterInput, actorId?: string, barangayId?: string) {
-    await blotterService.getById(id)
+    await blotterService.getById(id, barangayId)
     const blotter = await blotterRepository.update(id, data)
     await activityLogRepository.create({
       barangayId,
@@ -38,7 +38,7 @@ export const blotterService = {
   },
 
   async delete(id: string, actorId?: string, barangayId?: string) {
-    const blotter = await blotterService.getById(id)
+    const blotter = await blotterService.getById(id, barangayId)
     await blotterRepository.delete(id)
     await activityLogRepository.create({
       barangayId,

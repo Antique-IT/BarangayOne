@@ -11,8 +11,8 @@ export const announcementService = {
     return announcementRepository.findMany(opts)
   },
 
-  async getById(id: string) {
-    const announcement = await announcementRepository.findById(id)
+  async getById(id: string, barangayId?: string) {
+    const announcement = await announcementRepository.findById(id, barangayId)
     if (!announcement) throw notFound("Announcement not found")
     return announcement
   },
@@ -36,7 +36,7 @@ export const announcementService = {
     actorId?: string,
     barangayId?: string,
   ) {
-    const existing = await announcementService.getById(id)
+    const existing = await announcementService.getById(id, barangayId)
     const announcement = await announcementRepository.update(id, data, existing.publishedAt)
     await activityLogRepository.create({
       barangayId,
@@ -48,7 +48,7 @@ export const announcementService = {
   },
 
   async delete(id: string, actorId?: string, barangayId?: string) {
-    const existing = await announcementService.getById(id)
+    const existing = await announcementService.getById(id, barangayId)
     await announcementRepository.delete(id)
     await activityLogRepository.create({
       barangayId,

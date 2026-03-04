@@ -26,8 +26,10 @@ export const announcementRepository = {
     return { announcements, total, page, limit }
   },
 
-  async findById(id: string) {
-    return prisma.announcement.findUnique({ where: { id } })
+  async findById(id: string, barangayId?: string) {
+    return prisma.announcement.findFirst({
+      where: { id, barangayId: barangayId ?? undefined },
+    })
   },
 
   async create(barangayId: string, data: CreateAnnouncementInput, createdBy?: string) {

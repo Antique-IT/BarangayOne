@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { isAdminRole } from "@/lib/rbac"
+import { requireBarangay, requireSessionUser } from "@/lib/auth-guards"
+import { withErrorHandler } from "@/lib/api-error"
 import { buildVerificationQrDataUrl } from "@/lib/document-verification"
 import { Document, Image, Page, StyleSheet, Text, View, pdf } from "@react-pdf/renderer"
 
@@ -83,11 +83,11 @@ function ClearanceCertificate({
   )
 }
 
-export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+export const GET = withErrorHandler(async (_req, ctx) => {
+  const user = await requireSessionUser()
+  const barangayId = requireBarangay(user)
 
-  const { id } = await ctx.params
+  const { id } = await (ctx as { params: Promise<{ id: string }> }).params
   const clearance = await prisma.clearanceRequest.findUnique({
     where: { id },
   })
@@ -104,10 +104,12 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     return NextResponse.json({ error: "Resident not found" }, { status: 404 })
   }
 
-  const isOwner = session.user.residentId && clearance.residentId === session.user.residentId
-  const isAdmin = isAdminRole(session.user.role)
-  if (!isOwner && !isAdmin) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  const isOwner = user.residentId && clearance.residentId === user.residentId
+  const isAdmin = isAdminRole(user.role)
+  const sameBarangay = clearance.barangayId === barangayId
+
+  if (!sameBarangay || (!isOwner && !isAdmin)) {
+    return NextResponse.json({ error: "Access denied: you are not allowed to download this document" }, { status: 403 })
   }
 
   if (clearance.status !== "APPROVED") {
@@ -135,4 +137,4 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       "Content-Disposition": `attachment; filename="${clearance.documentNumber}.pdf"`,
     },
   })
-}
+})

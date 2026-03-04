@@ -25,6 +25,7 @@ export async function proxy(request: NextRequest) {
   const isPublicRoute =
     pathname === "/" ||
     pathname === "/login" ||
+    pathname === "/forbidden" ||
     pathname === "/public/verify" ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/public/")
@@ -47,18 +48,18 @@ export async function proxy(request: NextRequest) {
   }
 
   if (isProtectedApiRoute && token && !isAdminRole(token.role) && !isResidentRole(token.role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    return NextResponse.json({ error: "Access denied: insufficient permissions" }, { status: 403 })
   }
 
   if (isResidentRoute && !isResidentRole(token?.role)) {
-    return NextResponse.redirect(new URL("/dashboard", request.url))
+    return NextResponse.redirect(new URL("/forbidden", request.url))
   }
 
   if (isAdminRoute && !isAdminRole(token?.role)) {
     if (isResidentRole(token?.role)) {
-      return NextResponse.redirect(new URL("/resident/dashboard", request.url))
+      return NextResponse.redirect(new URL("/forbidden", request.url))
     }
-    return NextResponse.redirect(new URL("/login", request.url))
+    return NextResponse.redirect(new URL("/forbidden", request.url))
   }
 
   return NextResponse.next()

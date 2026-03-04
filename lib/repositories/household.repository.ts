@@ -27,9 +27,9 @@ export const householdRepository = {
     return { households, total, page, limit }
   },
 
-  async findById(id: string) {
-    return prisma.household.findUnique({
-      where: { id },
+  async findById(id: string, barangayId?: string) {
+    return prisma.household.findFirst({
+      where: { id, barangayId: barangayId ?? undefined },
       include: { members: { include: { resident: true } } },
     })
   },

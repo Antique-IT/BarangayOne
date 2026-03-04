@@ -11,7 +11,7 @@ BarangayOne is a production-ready, multi-tenant barangay e-governance platform t
 - **Announcements** – Publish community announcements and notices
 - **Analytics** – Visual charts and statistics using Recharts
 - **Activity Logs** – Audit trail of all system actions
-- **Role-based Access** – Admin, Secretary, and Staff roles
+- **Role-based Access** – Admin, Secretary (Staff), and Resident roles
 
 ## Tech Stack
 
@@ -21,6 +21,73 @@ BarangayOne is a production-ready, multi-tenant barangay e-governance platform t
 - **UI**: Tailwind CSS v4 + shadcn/ui
 - **Charts**: Recharts
 - **Forms**: React Hook Form + Zod
+
+## Authentication & RBAC
+
+### Session and Login Flow
+
+- Authentication uses **NextAuth.js v4** with the **Credentials provider** and **JWT sessions**.
+- Protected route requests made by unauthenticated users are redirected to `/login` with `callbackUrl`.
+- After successful login, users are redirected to:
+	- `callbackUrl` (if present and safe), otherwise
+	- `/dashboard` for Admin/Secretary
+	- `/resident/dashboard` for Resident
+- Logout is supported for both dashboard and resident portals.
+
+### Role Mapping
+
+| Product Role | Current System Role | Scope |
+|------|------|------|
+| Admin | `ADMIN` | Full dashboard + full API access |
+| Staff | `SECRETARY` | Dashboard read/write, restricted destructive actions |
+| Viewer (Resident portal) | `RESIDENT` | Resident portal only |
+
+### Route and API Protection
+
+- **Page protection (proxy):**
+	- `/dashboard/**` and legacy admin paths require Admin/Secretary.
+	- `/resident/**` requires Resident.
+	- Unauthorized role access is redirected to `/forbidden`.
+- **API protection:**
+	- All protected APIs require a valid session.
+	- Admin APIs enforce role checks (Admin/Secretary for read/write; Admin-only for destructive actions where configured).
+	- Resident-only behavior is enforced for resident-owned resources (for example, document download ownership checks).
+- **Tenant isolation:**
+	- By-ID service lookups are barangay-scoped before update/delete/archive operations.
+
+### Unauthorized Handling
+
+- Unauthenticated requests return **401 Unauthorized** (or redirect to `/login` for pages).
+- Authenticated but disallowed requests return **403 Access denied** with a clear message.
+- A dedicated denied page is available at `/forbidden`.
+
+### API Permission Matrix
+
+Legend: ✅ allowed, ❌ denied.
+
+| Endpoint Group | Method | Admin (`ADMIN`) | Staff (`SECRETARY`) | Resident (`RESIDENT`) |
+|------|------|------|------|------|
+| `/api/residents` | `GET`, `POST` | ✅ | ✅ | ❌ |
+| `/api/residents/[id]` | `GET`, `PUT` | ✅ | ✅ | ❌ |
+| `/api/residents/[id]` | `DELETE` | ✅ | ❌ | ❌ |
+| `/api/households` | `GET`, `POST` | ✅ | ✅ | ❌ |
+| `/api/households/[id]` | `GET`, `PUT` | ✅ | ✅ | ❌ |
+| `/api/households/[id]` | `DELETE` | ✅ | ❌ | ❌ |
+| `/api/clearances` | `GET`, `POST` | ✅ | ✅ | ❌ |
+| `/api/clearances/[id]` | `GET`, `PUT` | ✅ | ✅ | ❌ |
+| `/api/clearances/[id]` | `DELETE` | ✅ | ❌ | ❌ |
+| `/api/clearances/[id]/document` | `GET` | ✅ (same barangay) | ✅ (same barangay) | ✅ (owner only, same barangay) |
+| `/api/blotter` | `GET`, `POST` | ✅ | ✅ | ❌ |
+| `/api/blotter/[id]` | `GET`, `PUT` | ✅ | ✅ | ❌ |
+| `/api/blotter/[id]` | `DELETE` | ✅ | ❌ | ❌ |
+| `/api/announcements` | `GET`, `POST` | ✅ | ✅ | ❌ |
+| `/api/announcements/[id]` | `GET`, `PUT` | ✅ | ✅ | ❌ |
+| `/api/announcements/[id]` | `DELETE` | ✅ | ❌ | ❌ |
+| `/api/activity-logs` | `GET` | ✅ | ✅ | ❌ |
+| `/api/analytics` | `GET` | ✅ | ✅ | ❌ |
+| `/api/reports` | `GET` | ✅ | ✅ | ❌ |
+
+All protected APIs require a valid session and barangay association; id-based reads/writes are barangay-scoped before mutation.
 
 ## Getting Started
 
@@ -94,6 +161,7 @@ Visit [http://localhost:3000](http://localhost:3000)
 |------|-------|----------|
 | Admin | admin@barangay.gov.ph | admin123 |
 | Secretary | secretary@barangay.gov.ph | secretary123 |
+| Resident | resident@barangay.gov.ph | resident123 |
 
 ## Project Structure
 
